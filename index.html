@@ -1213,22 +1213,45 @@ footer{margin-top:48px;text-align:center;color:var(--muted);font-size:12.5px;}
 </body></html>`;
 }
 
+function downloadBlob(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
 async function exportCSV(){
   const statusEl = document.getElementById('export-status');
   statusEl.style.display = 'block';
   statusEl.textContent = 'Preparando reporte…';
-  try{
-    const dl = await claude.use('downloads');
-    if(!dl){
-      statusEl.textContent = 'La descarga no está disponible en esta vista.';
-      return;
+  const html = buildReportHTML();
+
+  // Dentro del visor de Claude: usa la capability nativa de descargas (pide confirmación).
+  if(typeof claude !== 'undefined' && claude.use){
+    try{
+      const dl = await claude.use('downloads');
+      if(dl){
+        const result = await dl.save({filename:'budi-report.html', data:html});
+        statusEl.textContent = result.status==='saved' ? 'Reporte guardado.' : 'Reporte entregado.';
+        return;
+      }
+    }catch(err){
+      if(err && err.code==='declined'){ statusEl.textContent = 'Descarga cancelada.'; return; }
+      // si falla, sigue abajo al método estándar del navegador
     }
-    const html = buildReportHTML();
-    const result = await dl.save({filename:'budi-report.html', data:html});
-    statusEl.textContent = result.status==='saved' ? 'Reporte guardado.' : 'Reporte entregado.';
+  }
+
+  // Fuera de Claude (GitHub Pages, cualquier hosting, o abierto como archivo local): descarga normal del navegador.
+  try{
+    downloadBlob(html, 'budi-report.html', 'text/html');
+    statusEl.textContent = 'Reporte descargado.';
   }catch(err){
-    if(err && err.code==='declined') statusEl.textContent = 'Descarga cancelada.';
-    else statusEl.textContent = 'No se pudo exportar el reporte.';
+    statusEl.textContent = 'No se pudo exportar el reporte.';
   }
 }
 
