@@ -439,7 +439,7 @@ nav.bottom svg{width:21px;height:21px;}
           <option value="otros">Otros</option>
         </select>
         <label>Fecha</label>
-        <input type="date" id="f-date" value="2026-09-22" oninput="clearFieldError('date')">
+        <input type="date" id="f-date" oninput="clearFieldError('date')">
         <span class="field-error" id="err-date">Elige una fecha.</span>
         <label>Método de pago</label>
         <select id="f-method"></select>
@@ -642,6 +642,7 @@ let categories = {
   vivienda:       {name:'Vivienda',           group:'esenciales', budget:300000, spent:285000, icon:'🏠'},
   alimentacion:   {name:'Alimentación',       group:'esenciales', budget:150000, spent:125000, icon:'🛒'},
   transporte:     {name:'Transporte',         group:'esenciales', budget:75000,  spent:90000,  icon:'⛽'},
+  salud:          {name:'Salud',              group:'esenciales', budget:50000,  spent:0,      icon:'🏥'},
   entretenimiento:{name:'Entretenimiento',    group:'estilo',     budget:50000,  spent:32000,  icon:'🎬'},
   compras:        {name:'Compras',            group:'estilo',     budget:100000, spent:65000,  icon:'🛍️'},
   fondo:          {name:'Fondo de emergencia',group:'ahorro',     budget:60000,  spent:58240,  icon:'🚨'},
@@ -673,7 +674,14 @@ function fmtShort(n){
   return CURRENCY_SYMBOL+v;
 }
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
-const TODAY = new Date(2026,8,22);
+const TODAY = new Date();
+TODAY.setHours(0,0,0,0);
+function todayISO(){
+  const y = TODAY.getFullYear();
+  const m = String(TODAY.getMonth()+1).padStart(2,'0');
+  const d = String(TODAY.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
 function daysDiff(dateStr){
   const d = new Date(dateStr+'T00:00:00');
   return Math.round((TODAY-d)/86400000);
@@ -1272,7 +1280,7 @@ function openForm(id){
   } else {
     document.getElementById('f-name').value='';
     document.getElementById('f-amount').value='';
-    document.getElementById('f-date').value='2026-09-22';
+    document.getElementById('f-date').value = todayISO();
     document.getElementById('f-cat').value='alimentacion';
     document.getElementById('f-method').value = paymentMethods[0];
     document.getElementById('txModalTitle').textContent = 'Nueva transacción';
@@ -1689,13 +1697,13 @@ function resetData(){
 /* ---------- empezar de cero ---------- */
 function buildDefaultCategories(){
   const necTotal = INGRESOS*0.5, gpTotal = INGRESOS*0.3, adTotal = INGRESOS*0.2;
-  const nec = ['vivienda','alimentacion','servicios','transporte','seguros'];
+  const nec = ['vivienda','alimentacion','servicios','transporte','seguros','salud'];
   const gp  = ['restaurante','entretenimiento','ropa','viajes','hobbies'];
   const ad  = ['fondo','deudas'];
-  const names = {vivienda:'Vivienda',alimentacion:'Alimentación',servicios:'Servicios',transporte:'Transporte',seguros:'Seguros',
+  const names = {vivienda:'Vivienda',alimentacion:'Alimentación',servicios:'Servicios',transporte:'Transporte',seguros:'Seguros',salud:'Salud',
     restaurante:'Restaurante',entretenimiento:'Entretenimiento',ropa:'Ropa',viajes:'Viajes',hobbies:'Hobbies',
     fondo:'Fondo de emergencia',deudas:'Deudas'};
-  const icons = {vivienda:'🏠',alimentacion:'🛒',servicios:'💡',transporte:'⛽',seguros:'🛡️',
+  const icons = {vivienda:'🏠',alimentacion:'🛒',servicios:'💡',transporte:'⛽',seguros:'🛡️',salud:'🏥',
     restaurante:'🍽️',entretenimiento:'🎬',ropa:'👕',viajes:'✈️',hobbies:'🎨',
     fondo:'🚨',deudas:'🧾'};
   const out = {};
