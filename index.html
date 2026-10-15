@@ -154,6 +154,8 @@ a.link{color:var(--text);font-size:13px;text-decoration:none;border-bottom:1px s
 .bar.inc{background:var(--chart3);}
 .bar.exp{background:var(--chart1);}
 .bar-col .m{font-size:11px;color:var(--muted);}
+.bars.dense{gap:3px;}.bars.dense .bar{width:4px;}.bars.dense .bar-pair{gap:1px;}.bars.dense .bar-col .m{font-size:9px;}
+#repChips .chip{cursor:pointer;}
 
 /* settings list */
 .set-row{display:flex;justify-content:space-between;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line);font-size:14.5px;}
@@ -255,7 +257,7 @@ nav.bottom svg{width:21px;height:21px;}
         <div class="flow-item"><div class="lbl">Ingresos</div><div class="val" id="val-ingresos">₡953.240</div></div>
         <div class="flow-item"><div class="lbl">Gastos</div><div class="val" id="val-gastos">₡637.000</div></div>
         <div class="flow-item"><div class="lbl">Ahorro</div><div class="val" id="val-ahorro">₡163.240</div></div>
-        <div class="flow-item"><div class="lbl">Inversión</div><div class="val">₡58k</div></div>
+        <div class="flow-item"><div class="lbl">Inversión</div><div class="val" id="val-inversion">₡0</div></div>
         <div class="flow-item accent"><div class="lbl">Disponible</div><div class="val" id="val-disponible">₡94.760</div></div>
       </div>
 
@@ -339,9 +341,15 @@ nav.bottom svg{width:21px;height:21px;}
 
     <!-- REPORTES -->
     <section class="screen" id="reportes">
-      <div class="chips">
-        <div class="chip">Semana</div><div class="chip active">Mes</div><div class="chip">Trimestre</div><div class="chip">Año</div><div class="chip">Personalizado</div>
+      <div class="chips" id="repChips">
+        <div class="chip" data-p="semana">Semana</div><div class="chip active" data-p="mes">Mes</div><div class="chip" data-p="trimestre">Trimestre</div><div class="chip" data-p="anio">Año</div><div class="chip" data-p="custom">Personalizado</div>
       </div>
+      <div id="repCustom" style="display:none;gap:8px;margin:0 0 10px;align-items:center">
+        <input type="date" id="repFrom" onchange="onCustomDates()" style="flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:inherit;font-size:13px">
+        <span class="small muted">a</span>
+        <input type="date" id="repTo" onchange="onCustomDates()" style="flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:inherit;font-size:13px">
+      </div>
+      <p class="small muted" id="repRange" style="margin:0 0 10px 4px"></p>
 
       <div class="card">
         <h3>Ingresos vs. gastos</h3>
@@ -368,7 +376,7 @@ nav.bottom svg{width:21px;height:21px;}
         <h3>Progreso de metas</h3>
         <div id="repGoals"></div>
       </div>
-      <p class="small muted" style="margin:-6px 0 4px 4px" id="history-note">Los meses marcados con * son ilustrativos — todavía no hay historial guardado para ellos.</p>
+      <p class="small muted" style="margin:-6px 0 4px 4px" id="history-note">Ingresos estimados: tu ingreso mensual repartido por día. Los gastos vienen de tus movimientos.</p>
     </section>
 
     <!-- CONFIGURACIÓN -->
@@ -387,6 +395,7 @@ nav.bottom svg{width:21px;height:21px;}
         <div class="set-section-title">Cuenta</div>
         <div class="set-row" onclick="openProfileForm()" style="cursor:pointer"><span>Perfil</span><span class="chev" id="profile-preview">Buddy ›</span></div>
         <div class="set-row" onclick="openIncomeForm()" style="cursor:pointer"><span>Ingreso mensual</span><span class="chev" id="income-preview">₡953.240 ›</span></div>
+        <div class="set-row" onclick="openIncomeForm()" style="cursor:pointer"><span>Presupuesto total del mes</span><span class="chev" id="budget-preview">Igual al ingreso ›</span></div>
         <div class="set-row" style="flex-direction:column;align-items:stretch;gap:10px;padding:12px 4px">
           <span>Moneda</span>
           <div class="theme-toggle" id="currencyToggle">
@@ -556,12 +565,16 @@ nav.bottom svg{width:21px;height:21px;}
   <div class="modal-back" id="incomeModalBack" onclick="if(event.target===this)closeIncomeForm()">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
-      <h3 style="margin:0 0 14px">Ingreso mensual</h3>
+      <h3 style="margin:0 0 14px">Ingreso y presupuesto</h3>
       <form id="incomeForm" onsubmit="submitIncomeForm(event)" novalidate>
         <label>Monto (<span class="cur-sym">₡</span>)</label>
         <input type="number" id="i-amount" placeholder="0" min="1" oninput="clearIncomeError()">
         <span class="field-error" id="err-i-amount">Ingresa un monto mayor a ₡0.</span>
-        <p class="small muted" style="margin:10px 0 0">Este monto se usa para calcular Gastos, Disponible y tu tasa de ahorro en el Dashboard.</p>
+        <p class="small muted" style="margin:10px 0 0">Este monto se usa para calcular Disponible y tu tasa de ahorro en el Dashboard.</p>
+        <label style="margin-top:14px">Presupuesto total del mes (<span class="cur-sym">₡</span>) · opcional</label>
+        <input type="number" id="p-amount" placeholder="Igual al ingreso" min="1" oninput="clearIncomeError()">
+        <span class="field-error" id="err-p-amount">Ingresa un monto mayor a ₡0 o déjalo vacío.</span>
+        <p class="small muted" style="margin:10px 0 0">Es lo máximo que quieres gastar al mes. Los límites 50/30/20 y las alertas se calculan sobre este monto. Si lo dejas vacío, se usa tu ingreso.</p>
         <div class="modal-actions">
           <button type="button" class="btn-ghost" onclick="closeIncomeForm()">Cancelar</button>
           <button type="submit" class="btn-solid">Guardar</button>
@@ -636,7 +649,18 @@ go('dashboard');
 
 /* ---------- estado y lógica de datos ---------- */
 let INGRESOS = 953240;
-const INVERSION = 45000; // aporte fijo a jubilación, no depende de transacciones
+let PRESU_TOTAL = 0; // 0 = igual al ingreso
+function budgetBase(){ return PRESU_TOTAL>0 ? PRESU_TOTAL : INGRESOS; }
+// Registro de aportes a metas: {goalId, date:'YYYY-MM-DD', amount}
+let contributions = [];
+// Inversión del mes = aportes de este mes a metas de tipo "Inversión"
+function inversionDelMes(){
+  const prefix = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
+  const invIds = new Set(goals.filter(g=>g.type==='inversion').map(g=>g.id));
+  return contributions
+    .filter(c=>c.date.startsWith(prefix) && invIds.has(c.goalId))
+    .reduce((s,c)=>s+c.amount, 0);
+}
 
 let categories = {
   vivienda:       {name:'Vivienda',           group:'esenciales', budget:300000, spent:285000, icon:'🏠'},
@@ -792,7 +816,7 @@ function groupTotals(group){
 const GROUP_CAPS = {esenciales:50, estilo:30, ahorro:20};
 function renderBudgetAlerts(es, st, ah){
   const wrap = document.getElementById('budgetAlerts');
-  if(!NOTIFICATIONS_ON || !INGRESOS){ wrap.innerHTML=''; return; }
+  if(!NOTIFICATIONS_ON || !budgetBase()){ wrap.innerHTML=''; return; }
   const groups = [
     {key:'esenciales', label:groupLabelsGlobal.esenciales, spent:es.spent},
     {key:'estilo',     label:groupLabelsGlobal.estilo,     spent:st.spent},
@@ -800,11 +824,11 @@ function renderBudgetAlerts(es, st, ah){
   ];
   let html = '';
   groups.forEach(g=>{
-    const pct = Math.round((g.spent/INGRESOS)*100);
+    const pct = Math.round((g.spent/budgetBase())*100);
     if(pct > GROUP_CAPS[g.key]){
       html += `<div class="alert-card">
         <div class="ic">⚠️</div>
-        <div class="tx"><b>${g.label} al ${pct}% de tus ingresos</b>Supera el máximo recomendado de ${GROUP_CAPS[g.key]}%. Llevas ${fmt(g.spent)} de ${fmt(Math.round(INGRESOS*GROUP_CAPS[g.key]/100))}.</div>
+        <div class="tx"><b>${g.label} al ${pct}% de tu ${PRESU_TOTAL>0?'presupuesto':'ingreso'}</b>Supera el máximo recomendado de ${GROUP_CAPS[g.key]}%. Llevas ${fmt(g.spent)} de ${fmt(Math.round(budgetBase()*GROUP_CAPS[g.key]/100))}.</div>
       </div>`;
     }
   });
@@ -816,7 +840,7 @@ function updateDerived(){
 
   // totales esenciales+estilo (= "gastos")
   const es = groupTotals('esenciales'), st = groupTotals('estilo'), ah = groupTotals('ahorro');
-  const budget = es.budget+st.budget, spent = es.spent+st.spent+categories.otros.spent;
+  const budget = PRESU_TOTAL>0 ? PRESU_TOTAL : es.budget+st.budget, spent = es.spent+st.spent+categories.otros.spent;
   const pct = Math.round((spent/budget)*100);
   document.getElementById('presu-total-txt').textContent = `${fmt(spent)} / ${fmt(budget)}`;
   document.getElementById('presu-total-bar').style.width = Math.min(pct,100)+'%';
@@ -824,26 +848,26 @@ function updateDerived(){
   document.getElementById('dash-presu-bar').style.width = Math.min(pct,100)+'%';
   const restante = budget-spent;
   document.getElementById('dash-presu-txt').textContent = restante>=0
-    ? `Vas bien — te quedan ${fmt(restante)} para los próximos 8 días.`
+    ? `Vas bien — te quedan ${fmt(restante)} para los próximos ${Math.max(1,new Date(TODAY.getFullYear(),TODAY.getMonth()+1,0).getDate()-TODAY.getDate()+1)} días.`
     : `Te pasaste ${fmt(Math.abs(restante))} del presupuesto del mes.`;
 
   // flujo del dashboard
   const ahorro = ah.spent;
-  const disponible = INGRESOS - spent - ahorro - INVERSION;
+  const inversion = inversionDelMes();
+  const disponible = INGRESOS - spent - ahorro - inversion;
   document.getElementById('val-ingresos').textContent = fmtShort(INGRESOS);
   document.getElementById('val-gastos').textContent = fmtShort(spent);
   document.getElementById('val-ahorro').textContent = fmtShort(ahorro);
+  document.getElementById('val-inversion').textContent = fmtShort(inversion);
   document.getElementById('val-disponible').textContent = fmtShort(disponible);
   document.getElementById('stat-tasa').textContent = Math.round((ahorro/INGRESOS)*100)+'%';
   document.getElementById('income-preview').textContent = fmt(INGRESOS)+' ›';
+  document.getElementById('budget-preview').textContent = (PRESU_TOTAL>0 ? fmt(PRESU_TOTAL) : 'Igual al ingreso')+' ›';
   renderBudgetAlerts(es, st, ah);
 
   renderDonut('dashDonut','dashLegend','pct');
-  renderDonut('repDonut','repLegend','amount');
   snapshotCurrentMonth(spent, ahorro);
-  renderBars();
-  updateAhorroEvo(ahorro);
-  renderReportGoals();
+  renderReports();
 }
 
 function computeDistribution(){
@@ -861,10 +885,10 @@ function computeDistribution(){
   return {entries:top, total};
 }
 
-function renderDonut(donutId, legendId, mode){
+function renderDonut(donutId, legendId, mode, dist){
   const donutEl = document.getElementById(donutId);
   const legendEl = document.getElementById(legendId);
-  const {entries, total} = computeDistribution();
+  const {entries, total} = dist || computeDistribution();
   if(!total){
     donutEl.style.background = 'var(--track)';
     legendEl.innerHTML = '<div class="small muted">Sin gastos registrados todavía.</div>';
@@ -906,37 +930,144 @@ function last4MonthKeys(){
   return keys;
 }
 
-function renderBars(){
-  const keys = last4MonthKeys();
-  const data = keys.map(k=>history[k] || {ingresos:0, gastos:0, illustrative:true});
-  const maxIng = Math.max(1, ...data.map(d=>d.ingresos||0));
-  document.getElementById('barsContainer').innerHTML = data.map((d,i)=>{
-    const incPx = Math.round(82*((d.ingresos||0)/maxIng));
-    const expPx = Math.round(82*((d.gastos||0)/maxIng));
-    const monthNum = parseInt(keys[i].split('-')[1],10)-1;
-    const label = MESES[monthNum] + (d.illustrative ? '*' : '');
-    return `<div class="bar-col"><div class="bar-pair"><div class="bar inc" style="height:${incPx}px"></div><div class="bar exp" style="height:${expPx}px"></div></div><span class="m">${label}</span></div>`;
-  }).join('');
+/* ---------- Reportes por período (desde movimientos) ---------- */
+let reportPeriod = 'mes';
+let reportCustom = {start:null, end:null};
+function isoOf(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function parseISO(x){ const [y,m,d]=x.split('-').map(Number); return new Date(y,m-1,d); }
+function addDays(d,n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
+function daysBetween(a,b){ return Math.round((b-a)/86400000); }
 
-  const cur = data[3], prev = data[2];
-  if(prev && prev.gastos>0){
-    const diffPct = Math.round(((cur.gastos-prev.gastos)/prev.gastos)*100);
-    document.getElementById('bars-insight').textContent = diffPct>=0
-      ? `Gastaste ${diffPct}% más que el mes anterior.`
-      : `Gastaste ${Math.abs(diffPct)}% menos que el mes anterior.`;
-  } else {
-    document.getElementById('bars-insight').textContent = 'Todavía no hay suficiente historial para comparar.';
+function periodRange(){
+  const t=TODAY; let s, e=t;
+  if(reportPeriod==='semana') s=addDays(t,-6);
+  else if(reportPeriod==='mes') s=new Date(t.getFullYear(), t.getMonth(), 1);
+  else if(reportPeriod==='trimestre') s=new Date(t.getFullYear(), t.getMonth()-2, 1);
+  else if(reportPeriod==='anio') s=new Date(t.getFullYear(), 0, 1);
+  else {
+    s=parseISO(reportCustom.start); e=parseISO(reportCustom.end);
   }
-  const anyIllustrative = data.some(d=>d.illustrative);
-  document.getElementById('history-note').style.display = anyIllustrative ? 'block' : 'none';
+  return {s,e};
+}
+function dataStart(){
+  let d = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+  transactions.forEach(t=>{ const x=parseISO(t.date); if(x<d) d=x; });
+  return d;
+}
+function sumRange(s,e){
+  const a=isoOf(s), b=isoOf(e);
+  const r={gastos:0, ahorro:0, cats:{}};
+  transactions.forEach(t=>{
+    if(t.amount>=0 || t.date<a || t.date>b) return;
+    const amt=-t.amount, c=categories[t.cat];
+    if(c && c.group==='ahorro') r.ahorro+=amt;
+    else { r.gastos+=amt; const n=c?c.name:'Otros'; r.cats[n]=(r.cats[n]||0)+amt; }
+  });
+  return r;
+}
+function incomeEst(s,e){
+  const from = s<dataStart()? dataStart() : s;
+  let tot=0;
+  for(let d=from; d<=e; d=addDays(d,1)){
+    tot += INGRESOS/new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  }
+  return tot;
+}
+function makeBuckets(s,e){
+  const n=daysBetween(s,e)+1, out=[];
+  if(reportPeriod==='semana' || n<=14){
+    for(let d=s; d<=e; d=addDays(d,1)) out.push({s:d,e:d,label:String(d.getDate())});
+  } else if(n<=100){
+    for(let d=s; d<=e; d=addDays(d,7)){
+      const end=addDays(d,6)>e? e : addDays(d,6);
+      out.push({s:d,e:end,label:d.getDate()+'/'+(d.getMonth()+1)});
+    }
+  } else {
+    let d=new Date(s.getFullYear(), s.getMonth(), 1);
+    while(d<=e){
+      const ms=d<s? s : d, me0=new Date(d.getFullYear(), d.getMonth()+1, 0), me=me0>e? e : me0;
+      out.push({s:ms,e:me,label:MESES[d.getMonth()]});
+      d=new Date(d.getFullYear(), d.getMonth()+1, 1);
+    }
+  }
+  return out.slice(-24);
+}
+function fmtDay(d){ return d.getDate()+' '+MESES[d.getMonth()]+' '+d.getFullYear(); }
+const PERIOD_LBL = {semana:'Últimos 7 días', mes:'Este mes', trimestre:'Último trimestre', anio:'Este año', custom:'Período'};
+
+function setReportPeriod(p){
+  reportPeriod=p;
+  if(p==='custom' && !reportCustom.start){
+    reportCustom.start=isoOf(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
+    reportCustom.end=isoOf(TODAY);
+  }
+  document.querySelectorAll('#repChips .chip').forEach(c=>c.classList.toggle('active', c.dataset.p===p));
+  const box=document.getElementById('repCustom');
+  box.style.display = p==='custom' ? 'flex' : 'none';
+  if(p==='custom'){
+    document.getElementById('repFrom').value=reportCustom.start;
+    document.getElementById('repTo').value=reportCustom.end;
+  }
+  renderReports();
+}
+function onCustomDates(){
+  const a=document.getElementById('repFrom').value, b=document.getElementById('repTo').value;
+  if(!a || !b) return;
+  reportCustom.start=a; reportCustom.end=b;
+  renderReports();
 }
 
-function updateAhorroEvo(ahorro){
-  const pct = Math.round((ahorro/INGRESOS)*100);
+function renderReports(){
+  if(!document.getElementById('barsContainer')) return;
+  const rangeEl=document.getElementById('repRange');
+  if(reportPeriod==='custom' && (!reportCustom.start || !reportCustom.end)) return;
+  let {s,e}=periodRange();
+  if(s>e){
+    rangeEl.textContent='La fecha inicial debe ser anterior a la final.';
+    return;
+  }
+  rangeEl.textContent = fmtDay(s)+' – '+fmtDay(e);
+
+  const cur=sumRange(s,e);
+  // Dona de gastos del período
+  const entries=Object.entries(cur.cats).map(([name,spent])=>({name,spent})).sort((a,b)=>b.spent-a.spent);
+  const top=entries.slice(0,3), rest=entries.slice(3).reduce((x,y)=>x+y.spent,0);
+  if(rest>0) top.push({name:'Otros', spent:rest});
+  renderDonut('repDonut','repLegend','amount',{entries:top,total:top.reduce((x,y)=>x+y.spent,0)});
+
+  // Barras ingresos vs gastos
+  const buckets=makeBuckets(s,e).map(b=>({label:b.label, inc:incomeEst(b.s,b.e), exp:sumRange(b.s,b.e).gastos}));
+  const max=Math.max(1,...buckets.map(b=>Math.max(b.inc,b.exp)));
+  const cont=document.getElementById('barsContainer');
+  cont.classList.toggle('dense', buckets.length>8);
+  cont.innerHTML=buckets.map(b=>{
+    const ip=Math.round(82*b.inc/max), ep=Math.round(82*b.exp/max);
+    return `<div class="bar-col"><div class="bar-pair"><div class="bar inc" style="height:${ip}px"></div><div class="bar exp" style="height:${ep}px"></div></div><span class="m">${b.label}</span></div>`;
+  }).join('');
+
+  // Comparación con período anterior de igual duración
+  const n=daysBetween(s,e)+1, pe=addDays(s,-1), ps=addDays(s,-n);
+  const insight=document.getElementById('bars-insight');
+  if(pe>=dataStart()){
+    const prev=sumRange(ps,pe).gastos;
+    if(prev>0){
+      const diff=Math.round(((cur.gastos-prev)/prev)*100);
+      insight.textContent = diff>=0 ? `Gastaste ${diff}% más que el período anterior.` : `Gastaste ${Math.abs(diff)}% menos que el período anterior.`;
+    } else insight.textContent='No hay gastos en el período anterior para comparar.';
+  } else insight.textContent='Todavía no hay suficiente historial para comparar.';
+
+  updateAhorroEvo(cur.ahorro, incomeEst(s,e));
+  renderReportGoals();
+}
+
+function updateAhorroEvo(ahorro, ingreso){
+  const pct = ingreso>0 ? Math.round((ahorro/ingreso)*100) : 0;
+  document.getElementById('ahorro-evo-lbl').textContent = PERIOD_LBL[reportPeriod];
   document.getElementById('ahorro-evo-val').textContent = '+'+fmt(ahorro);
   document.getElementById('ahorro-evo-bar').style.width = Math.min(100,pct)+'%';
-  document.getElementById('ahorro-evo-txt').textContent =
-    `Estás ahorrando el ${pct}% de tus ingresos este mes.`;
+  document.getElementById('ahorro-evo-txt').textContent = ahorro>0
+    ? `Destinaste el ${pct}% de tus ingresos estimados a ahorro y deudas.`
+    : 'Todavía no registras ahorro en este período.';
 }
 
 function renderReportGoals(){
@@ -954,9 +1085,12 @@ function renderReportGoals(){
 function clearIncomeError(){
   document.getElementById('err-i-amount').classList.remove('show');
   document.getElementById('i-amount').classList.remove('invalid');
+  document.getElementById('err-p-amount').classList.remove('show');
+  document.getElementById('p-amount').classList.remove('invalid');
 }
 function openIncomeForm(){
   document.getElementById('i-amount').value = INGRESOS;
+  document.getElementById('p-amount').value = PRESU_TOTAL>0 ? PRESU_TOTAL : '';
   clearIncomeError();
   document.getElementById('incomeModalBack').classList.add('open');
 }
@@ -970,7 +1104,18 @@ function submitIncomeForm(e){
     document.getElementById('i-amount').classList.add('invalid');
     return;
   }
+  const praw = document.getElementById('p-amount').value.trim();
+  let pval = 0;
+  if(praw){
+    pval = parseFloat(praw);
+    if(isNaN(pval) || pval<=0){
+      document.getElementById('err-p-amount').classList.add('show');
+      document.getElementById('p-amount').classList.add('invalid');
+      return;
+    }
+  }
   INGRESOS = val;
+  PRESU_TOTAL = pval;
   const salario = transactions.find(t=>t.cat===null && t.label==='Ingreso');
   if(salario) salario.amount = val;
   renderTransactions();
@@ -1138,7 +1283,8 @@ function buildReportHTML(){
   const es = groupTotals('esenciales'), st = groupTotals('estilo'), ah = groupTotals('ahorro');
   const gastos = es.spent + st.spent + categories.otros.spent;
   const ahorro = ah.spent;
-  const disponible = INGRESOS - gastos - ahorro - INVERSION;
+  const inversion = inversionDelMes();
+  const disponible = INGRESOS - gastos - ahorro - inversion;
   const monthLabel = MESES[TODAY.getMonth()][0].toUpperCase()+MESES[TODAY.getMonth()].slice(1)+' '+TODAY.getFullYear();
   const genDate = `${TODAY.getDate()} de ${MESES[TODAY.getMonth()]} de ${TODAY.getFullYear()}`;
 
@@ -1176,7 +1322,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;border-bo
 header h1{margin:0;font-size:34px;font-weight:700;color:var(--teal);letter-spacing:-0.01em;}
 header .meta{text-align:right;color:var(--muted);font-size:14px;}
 h2{font-size:19px;font-weight:600;color:var(--ink);margin:36px 0 14px;padding-left:12px;border-left:4px solid var(--teal);}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
 .card{background:var(--teal-light);border-radius:12px;padding:18px;}
 .card .lbl{font-size:13px;color:var(--muted);margin-bottom:6px;}
 .card .val{font-size:22px;font-weight:700;color:var(--ink);}
@@ -1201,6 +1347,7 @@ footer{margin-top:48px;text-align:center;color:var(--muted);font-size:12.5px;}
     <div class="card"><div class="lbl">Ingresos</div><div class="val">${fmt(INGRESOS)}</div></div>
     <div class="card"><div class="lbl">Gastos</div><div class="val">${fmt(gastos)}</div></div>
     <div class="card"><div class="lbl">Ahorro</div><div class="val">${fmt(ahorro)}</div></div>
+    <div class="card"><div class="lbl">Inversión</div><div class="val">${fmt(inversion)}</div></div>
     <div class="card"><div class="lbl">Disponible</div><div class="val">${fmt(disponible)}</div></div>
   </div>
 
@@ -1521,6 +1668,7 @@ function askDeleteGoal(){
 function deleteGoal(){
   goals = goals.filter(x=>x.id!==activeGoalId);
   renderGoals();
+  updateDerived();
   saveState();
   closeGoalForm();
 }
@@ -1530,8 +1678,12 @@ function submitGoalForm(e){
   const amt = parseFloat(document.getElementById('g-amount').value);
   if(!amt || amt<=0) return;
   const g = goals.find(x=>x.id===activeGoalId);
+  const before = g.current;
   g.current = Math.min(g.current + amt, g.target);
+  const applied = g.current - before;
+  if(applied > 0) contributions.push({goalId:g.id, date:todayISO(), amount:applied});
   renderGoals();
+  updateDerived();
   saveState();
   closeGoalForm();
 }
@@ -1618,6 +1770,7 @@ function submitMetaForm(e){
     });
   }
   renderGoals();
+  updateDerived();
   saveState();
   closeMetaForm();
 }
@@ -1628,10 +1781,10 @@ const STORAGE_KEY = 'budi-state-v1';
 function saveState(){
   try{
     const data = {
-      categories, transactions, goals, seq, ingresos:INGRESOS, history,
+      categories, transactions, goals, seq, ingresos:INGRESOS, presuTotal:PRESU_TOTAL, history,
       userName:USER_NAME, notifications:NOTIFICATIONS_ON,
       currencyCode:CURRENCY_CODE, warnPct:WARN_PCT, overPct:OVER_PCT,
-      paymentMethods
+      paymentMethods, contributions
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }catch(err){
@@ -1649,6 +1802,7 @@ function loadState(){
     if(Array.isArray(data.goals) && data.goals.length) goals = data.goals;
     if(typeof data.seq === 'number') seq = data.seq;
     if(typeof data.ingresos === 'number' && data.ingresos>0) INGRESOS = data.ingresos;
+    if(typeof data.presuTotal === 'number' && data.presuTotal>0) PRESU_TOTAL = data.presuTotal;
     if(data.history && Object.keys(data.history).length) history = Object.assign({}, history, data.history);
     if(typeof data.userName === 'string' && data.userName) USER_NAME = data.userName;
     if(typeof data.notifications === 'boolean') NOTIFICATIONS_ON = data.notifications;
@@ -1659,6 +1813,7 @@ function loadState(){
     if(typeof data.warnPct === 'number') WARN_PCT = data.warnPct;
     if(typeof data.overPct === 'number') OVER_PCT = data.overPct;
     if(Array.isArray(data.paymentMethods) && data.paymentMethods.length) paymentMethods = data.paymentMethods;
+    if(Array.isArray(data.contributions)) contributions = data.contributions;
   }catch(err){
     console.warn('No se pudo cargar el estado guardado:', err);
   }
@@ -1686,6 +1841,7 @@ syncMethodSelect();
 renderTransactions();
 updateDerived();
 renderGoals();
+document.querySelectorAll('#repChips .chip').forEach(c=>c.addEventListener('click',()=>setReportPeriod(c.dataset.p)));
 initTheme();
 applyProfile();
 
@@ -1696,7 +1852,7 @@ function resetData(){
 
 /* ---------- empezar de cero ---------- */
 function buildDefaultCategories(){
-  const necTotal = INGRESOS*0.5, gpTotal = INGRESOS*0.3, adTotal = INGRESOS*0.2;
+  const necTotal = budgetBase()*0.5, gpTotal = budgetBase()*0.3, adTotal = budgetBase()*0.2;
   const nec = ['vivienda','alimentacion','servicios','transporte','seguros','salud'];
   const gp  = ['restaurante','entretenimiento','ropa','viajes','hobbies'];
   const ad  = ['fondo','deudas'];
@@ -1730,6 +1886,7 @@ function startFresh(){
   categories = buildDefaultCategories();
   transactions = [];
   goals.forEach(g=>{ g.current = 0; });
+  contributions = [];
   history = {};
   seq = 100;
   syncCatSelect();
